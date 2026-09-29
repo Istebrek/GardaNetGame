@@ -32,32 +32,36 @@ public class UserState(AuthenticationStateProvider authStateProvider, HttpClient
         var carts = await httpClient.GetFromJsonAsync<IEnumerable<ShoppingCartDto>>("api/cart");
         if (carts is null)
         {
-            return 0;
+            return await CreateUserCart();
         }
         var userCart = carts.FirstOrDefault(x => x.CustomerId == UserId);
 
         if (userCart is null)
         {
-            var response = await httpClient.PostAsJsonAsync<ShoppingCartCreateDto>($"api/cart", new ShoppingCartCreateDto
-            {
-                CustomerId = UserId,
-                CreatedAt = DateTime.Now,
-                ShoppingCartItems = []
-            });
-
-            if (response.IsSuccessStatusCode)
-            {
-                var newCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
-
-                if (newCart is null)
-                {
-                    return 0;
-                }
-                return newCart.Id;
-            }
-            return 0;
+            await CreateUserCart();
         }
+        return userCart!.Id;
+    }
 
-        return userCart.Id;
+    private async Task<int> CreateUserCart()
+    {
+        var newCart = new ShoppingCartCreateDto
+        {
+            CustomerId = UserId,
+            CreatedAt = DateTime.Now
+        };
+        var response = await httpClient.PostAsJsonAsync("api/cart", newCart);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var createdCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+
+            if (createdCart is null)
+            {
+                return 0;
+            }
+            return createdCart.Id;
+        }
+        return response.Content.ReadFromJsonAsync<ShoppingCartDto>().Id;
     }
 }

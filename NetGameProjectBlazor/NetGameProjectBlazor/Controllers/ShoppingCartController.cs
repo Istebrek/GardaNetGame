@@ -23,9 +23,7 @@ public class ShoppingCartController : ControllerBase
 	{
 		var carts = await _shoppingCartService.GetAllCartsAsync();
 
-		return carts is null || !carts.Any()
-			? NotFound("No shopping carts found.")
-			: Ok(carts);
+		return Ok(carts ?? []);
 	}
 
 	[HttpGet("{cartId}", Name = "GetCartById")]
