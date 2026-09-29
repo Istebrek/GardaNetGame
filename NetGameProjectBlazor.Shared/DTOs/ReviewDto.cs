@@ -1,0 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace NetGameProjectBlazor.Shared.DTOs;
+
+public class ReviewDto
+{
+    public int Id { get; set; }
+    public int Rating { get; set; }
+
+    public string? ReviewText { get; set; }
+
+    public DateTime? CreatedDate { get; set; }
+
+    public string? CustomerId { get; set; }
+
+    public int? ProductId { get; set; }
+}

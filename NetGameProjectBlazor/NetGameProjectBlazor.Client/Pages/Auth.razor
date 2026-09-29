@@ -1,0 +1,117 @@
+﻿@page "/Admin"
+@inject HttpClient httpClient
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@rendermode InteractiveWebAssembly
+
+@using System.Net;
+@using MudBlazor;
+@using MudBlazor.Services;
+@using NetGameProjectBlazor.Shared.DTOs;
+
+ @* @attribute [Authorize (Roles = "Admin")] *@
+<PageTitle>Admin Profile</PageTitle>
+
+
+@* <AuthorizeView> *@
+    @if (_users == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudContainer Class="px-0 mb-5">
+        <MudGrid Spacing="10">
+            @foreach (var user in _users)
+            {
+                <MudItem xs="1" md="4">
+                    <MudText>
+                        <MudStack Row=true>
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Class="rounded-lg ma-5" Expanded=false Style="width:260px; min-height:140px;">
+                                    <TitleContent>
+                                        <MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" Size="Size.Large" />@user.FullName
+                                        <MudText Style="font-size:0.6rem; text-overflow:ellipsis; white-space: nowrap; overflow: hidden;">
+                                            <p class="mb-1">@user.Email</p>
+                                            <p class="mb-1">@user.PhoneNumber</p>
+                                            <p class="mb-1">@user.Address</p>
+                                        </MudText>
+                                    </TitleContent>
+
+                                    <ChildContent>
+                                        <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                                        <MudStack Style="text-align:left !important; font-size:medium !important;">
+                                            <MudButton Href="@("/kund/order")" StartIcon="@Icons.Material.Outlined.Category" IconSize="Size.Small">
+                                                <MudText Style="text-align:left !important; font-size:medium !important;">
+                                                    Kundordrar
+                                                </MudText>
+                                            </MudButton>
+                                            <MudButton Style="text-align:left !important; font-size:medium !important;" Href="@("/kund/varukorg")" StartIcon="@Icons.Material.Outlined.ShoppingCart" IconSize="Size.Small">
+                                                <MudText Style="text-align:left !important; font-size:medium !important;">
+                                                    Kundkorg
+                                                </MudText>
+                                            </MudButton>
+                                            <MudButton Style="text-align:left !important; font-size:medium !important;" StartIcon="@Icons.Material.Outlined.AddModerator" IconSize="Size.Small">
+                                                <MudText>
+                                                    Ge Behörighet
+                                                </MudText>
+                                            </MudButton>
+                                        </MudStack>
+                                    </ChildContent>
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </MudStack>
+                    </MudText>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudContainer>
+}
+                    <!--MudPageContentNavigation-->
+
+                        @* <MudPaper Width="260px" Class="py-3 mt-5" Elevation="0" Style="background-color:#3E2E2E; color:white; font-size: larger;">
+                            <MudNavMenu Dense>
+                                <MudNavLink Class="py-1" OnClick="@(()=> GoTo("Kontoadministrering"))">Kontoadministrering</MudNavLink>
+                                <MudNavLink Class="py-1" OnClick="@(()=> GoTo("Produktadministrering"))">Produktadministrering</MudNavLink>
+                                <MudNavLink Class="py-1" OnClick="@(()=> GoTo("Kampanjer"))">Kampanjer</MudNavLink>
+                            </MudNavMenu>
+                        </MudPaper> *@
+                        
+
+                    <!--/MudPageContentNavigation-->
+
+@* </AuthorizeView> *@
+
+
+@code {
+    private void GoTo(string page) => Snackbar.Add($"Clicked {page}");
+    private List<UserDto> _users = new List<UserDto>();
+    public Position Position { get; set; } = Position.Left;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await httpClient.GetAsync("api/users");
+            if (response.IsSuccessStatusCode)
+            {
+                _users = await response.Content.ReadFromJsonAsync<List<UserDto>>();
+                if (_users != null)
+                {
+                    _users = _users.ToList();
+                } 
+            }
+            else
+            {
+                _users = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            string message = ex.Message;
+        }
+    }
+}
+

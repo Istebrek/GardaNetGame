@@ -1,0 +1,166 @@
+﻿@page "/contactus"
+@inject ISnackbar _snackbar
+@rendermode InteractiveWebAssembly
+
+<PageTitle>Contact Us</PageTitle>
+
+<MudContainer Class="pa-4 mb-5 contact-intro">
+	<MudText Class="text-center contact-us" Typo="Typo.h4" GutterBottom="true">
+		Kontakta Oss 
+		<MudIcon Icon="@Icons.Material.Filled.VideogameAsset" Size="Size.Large"/>
+	</MudText>
+
+	<MudContainer>
+		<div class="text-center">
+			<MudText Class="contact-us" Typo="Typo.body2" GutterBottom="true">
+				<i>
+					Har du en fråga, behöver support eller vill du bara snacka spel? Vi finns här för dig!<br />
+
+					Oavsett om du letar efter produktinfo, behöver hjälp med en beställning eller vill dela med dig av feedback, är <strong>GårdaNetGame</strong>-teamet redo att hjälpa till.
+
+					Fyll i formuläret nedan eller hör av dig via någon av våra kontaktvägar – vi svarar så snart vi kan!
+				</i>
+			</MudText>
+
+			<MudText Class="contact-us" Typo="Typo.body2" GutterBottom="true">
+				<i>Låt oss hålla spelet igång – tillsammans!</i>
+			</MudText>
+		</div>	
+	</MudContainer>
+</MudContainer>
+
+<MudContainer Class="px-0 mb-5 contact-location">
+	<MudGrid>
+		<MudItem class="location-text" xs="12" md="6">
+			<MudPaper Class="d-flex flex-column align-center justify-center text-center mud-width-full py-4">
+				<MudText Class="contact-us" Typo="Typo.h6" GutterBottom="true">
+					<strong><i>Här hittar du oss</i></strong>
+				</MudText>
+
+				<MudText Class="mt-5 contact-us" Typo="Typo.body2" GutterBottom="true">
+					<strong>Adress</strong>
+				</MudText>
+
+				<MudText Class="mb-5 contact-us" Typo="Typo.body2" GutterBottom="true">
+					GårdaNetGame <br />
+					Ebbe Lieberathsgatan 18C <br />
+					412 83 Göteborg, Sverige
+				</MudText>
+
+				<MudText Class="contact-us" Typo="Typo.body2" GutterBottom="true">
+					<MudIcon Icon="@Icons.Material.Filled.PhoneIphone" Size="Size.Small" /> 031-790 42 55 <br />
+					<MudIcon Icon="@Icons.Material.Filled.Mail" Size="Size.Small" /> <MudLink Href="mailto:kontact@gardanetgame.com">
+						kontakt@gardanetgame.com
+					</MudLink>
+				</MudText>
+
+				<MudText Class="mt-5 contact-us" Typo="Typo.body2" GutterBottom="true">
+					<strong>Öppetider</strong>
+				</MudText>
+
+				<MudText Class="contact-us" Typo="Typo.body2" GutterBottom="true">
+					Måndag - Fredag: 10:00 - 18:00 <br />
+					Lördag: 11:00 - 16:00 <br />
+					Söndag: <strong>Stängt</strong>
+				</MudText>
+			</MudPaper>
+		</MudItem>
+
+		<MudItem class="location-map mb-5" xs="12" md="6">
+			<MudPaper Class="d-flex flex-column align-center justify-center mud-width-full py-4" Style="height: 355px;">
+				<MudText Class="contact-us" Typo="Typo.h6" GutterBottom="true">
+					<strong><i>Se var vi finns på Google Maps</i></strong>
+				</MudText>
+				<iframe title="googleMaps" class="d-block mt-5 px-4 py-0 contact-us"
+						src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2133.208418984259!2d11.998990775806412!3d57.67893704201754!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x464ff369d0835015%3A0xba46082e9c214f49!2sIT-H%C3%B6gskolan!5e0!3m2!1ssv!2sse!4v1745930597458!5m2!1ssv!2sse"
+						width="600" height="250" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+				</iframe>
+			</MudPaper>
+		</MudItem>
+	</MudGrid>
+</MudContainer>
+
+<MudPaper Class="pa-4 mb-5 contact-form">
+	<MudContainer>
+		<div class="text-start">
+			<MudText Class="contact-us" Typo="Typo.h6" GutterBottom="true">
+				<strong><i>Kontakta Oss</i></strong>
+			</MudText>
+
+			<MudText Class="contact-us" Typo="Typo.body2" GutterBottom="true">
+				<i> Frågor eller funderingar? Fyll i formuläret så återkommer vi så fort som möjligt.</i>
+			</MudText>
+
+			<MudGrid>
+				<MudItem xs="12" sm="7">
+					<MudForm @ref="_form" @bind-IsValid="_isFormValid">
+						<MudTextField Class="mt-3 mb-3 contact-us" T="string" @bind-Value="_name" Label="Namn"
+									  Required="true" RequiredError="Namn är obligatoriskt!" />
+
+						<MudTextField Class="mt-3 mb-3 contact-us" T="string" @bind-Value="_email" Label="Email"
+									  Required="true" RequiredError="Email är obligatoriskt" />
+
+						<MudTextField Class="mt-3 mb-3 contact-us" T="string" @bind-Value="_message"
+										Label="Skriv in ditt meddelande" Variant="Variant.Outlined" Lines="6"></MudTextField>
+
+						<div class="d-flex flex-column align-center justify-space-between">
+							<MudCheckBox T="bool" @bind-Checked="_agreed" Required="true" RequiredError="Du måste godkänna villkoren.">
+								<MudText Class="contact-us" Typo="Typo.caption">
+									Jag godkänner webbplatsens användarvillkor och integritetspolicy.
+								</MudText>
+							</MudCheckBox>
+
+							<MudButton Class="ml-auto px-5 contact-us"
+										Variant="Variant.Filled"
+										Style="background-color: #937878CC; color: white;"
+										Disabled="@(!_isFormValid)"
+										OnClick="SendMessage">
+								Skicka
+							</MudButton>
+						</div>
+					</MudForm>
+				</MudItem>
+			</MudGrid>
+		</div>
+	</MudContainer>
+</MudPaper>
+
+
+@code {
+	private MudForm _form;
+
+	private bool _agreed = false;
+	private bool _isFormValid = false;
+
+	private string _name = string.Empty;
+	private string _email = string.Empty;
+	private string _message = string.Empty;
+
+	private async Task SendMessage()
+	{
+		await _form.Validate();
+
+		if (_form.IsValid)
+		{
+			Console.WriteLine("Knappen klickad!");  // Syns i browser console men snackbar ej visible??
+			_snackbar.Add("Your message has been sent.", Severity.Success, config =>
+			{
+				config.VisibleStateDuration = 2000;
+				config.ShowCloseIcon = true;
+				config.ShowTransitionDuration = 100;  
+				config.HideTransitionDuration = 100;
+			});
+
+			_name = string.Empty;
+			_email = string.Empty;
+			_message = string.Empty;
+			_agreed = false;
+
+			await _form.ResetAsync();
+		}
+		else
+		{
+			_snackbar.Add("Please fill in all required fields.", Severity.Error);
+		}
+	}
+}

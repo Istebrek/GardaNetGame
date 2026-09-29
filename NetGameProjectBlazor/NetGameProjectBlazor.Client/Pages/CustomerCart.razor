@@ -1,0 +1,23 @@
+﻿@page "/kund/varukorg"
+
+@inject HttpClient httpClient
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager Navigation
+@rendermode InteractiveWebAssembly
+
+@using System.Net;
+@using MudBlazor;
+@using MudBlazor.Services;
+@using NetGameProjectBlazor.Shared.DTOs;
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Kundvarukorg</PageTitle>
+
+<AuthorizeView>
+    <p>Här ska admin se en pågående varukorg för en kund</p>
+
+</AuthorizeView>
+@code {
+
+}

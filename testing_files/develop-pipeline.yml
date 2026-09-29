@@ -1,0 +1,29 @@
+trigger:
+  - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - template: templates/install-dependencies.yaml
+
+  - script: |
+      robot --variable BROWSER:headlesschrome --output testing_files/results/logs/output_base_test.xml --log testing_files/results/logs/log_base_test.html --report testing_files/results/logs/report_base_test.html testing_files/tests/base_tests.robot
+    continueOnError: true
+    displayName: 'Run Test File "base_test.robot"'
+
+  - script: |
+      robot --variable BROWSER:headlesschrome --pythonpath . --include ready --xunit testing_files/results/logs/output_ready_test_xunit.xml --output testing_files/results/logs/output_ready_test.xml --log testing_files/results/logs/log_ready_test.html --report testing_files/results/logs/report_ready_test.html testing_files/tests/
+    continueOnError: true
+    displayName: 'Run Tests tagged with ready'
+    
+  - script: |
+      robot --variable BROWSER:headlesschrome --test "Sort Games by PEGI_3 Age Restriction" --xunit testing_files/results/logs/output__games_sort_az_xunit.xml --output testing_files/results/logs/output_games_sort_az.xml --log testing_files/results/logs/log_games_sort_az.html --report testing_files/results/logs/report_games_sort_az_.html testing_files/tests/
+    continueOnError: true
+    displayName: 'Run Test "Sort Games by PEGI_3 Age Restriction"'
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(System.DefaultWorkingDirectory)/testing_files/results/logs/'
+      artifactName: 'robot-reports-develop'
+    displayName: 'Publish Robot Framework Reports'

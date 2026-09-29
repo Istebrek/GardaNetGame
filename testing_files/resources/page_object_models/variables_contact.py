@@ -1,0 +1,16 @@
+name_input = "//label[normalize-space(text())='Namn']/preceding::input[1]"
+email_input = "//label[normalize-space(text())='Email']/ancestor::div[contains(@class, 'mud-input-control')][1]//input"
+contactform = "//form[contains(@class, 'mud-form')]"
+message_input = "//label[normalize-space(text())='Skriv in ditt meddelande']/ancestor::div[contains(@class, 'mud-input-control')][1]//textarea"
+checkbox = "//input[@type='checkbox' and @aria-required='true']"
+send_button = "//button[contains(@class, 'mud-button-filled') and not(@disabled)]"
+
+contact_us_name = "Testnamn"
+contact_us_email = "Testare@Test.com"
+contact_us_message = "Hej, detta är ett testmeddelande"
+
+google_map_iframe = "//iframe[contains(@src, 'google.com/maps')]"
+zoom_in_button = "//button[@aria-label='Zooma in']"
+zoom_out_button = "//button[@aria-label='Zooma ut']"
+google_map = "//div[contains(@style, 'position: absolute')]"
+zoom_level = "javascript: return window.google.maps.visualRefresh"

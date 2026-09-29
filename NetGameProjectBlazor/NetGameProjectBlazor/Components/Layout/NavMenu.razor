@@ -1,0 +1,241 @@
+﻿@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+
+
+<MudAppBar Elevation="2" Class="px-6 pt-2 mb-2"
+		   Style="background-color: #ECE7E7; color: black; border-bottom: 1px solid #d6d0d0; min-height: 100px;">
+	<MudGrid AlignItems="Center" Class="w-100" Style="height: 120px;">
+
+		<!-- LEFT: SVG Logo -->
+		<MudItem xs="12" sm="4" md="3" Class="d-flex align-center justify-start mb-2 mb-sm-0">
+			<a href="/">
+				<img src="images/logo1a.svg"
+					alt="GårdaNetGame Logo"
+					style="height: 90px; margin-top: 10px; cursor: pointer;"
+					@onclick="@(() => NavigationManager.NavigateTo("/"))" />
+			</a>
+		</MudItem>
+
+		<!-- CENTER: Search Field -->
+		<MudItem xs="12" sm="4" md="6" Class="d-flex justify-center align-center mb-2 mb-sm-0">
+			<div class="position-relative w-100" style="max-width: 800px;">
+				<input type="text" id="searchInput" class="form-control custom-search-field"
+					   placeholder="Sök spel..." oninput="filterGames()" autocomplete="off" />
+				<span class="search-icon-right"><i class="bi bi-search"></i></span>
+				<ul id="searchDropdown" class="list-group position-absolute w-100 shadow mt-1"
+					style="display: none; z-index: 1001;"></ul>
+			</div>
+		</MudItem>
+
+		<!-- RIGHT: Icons -->
+		<MudItem xs="12" sm="4" md="3" Class="d-flex justify-end align-center">
+			<div class="nav-dropdown">
+				<MudIconButton Icon="@Icons.Material.Rounded.Person"
+							   Color="Color.Inherit"
+							   Size="Size.Large"
+							   Style="color: black;" />
+				<div class="dropdown-menu">
+					
+					@if (!loggedIn)
+					{
+						<MudNavLink Href="/Account/Login">Logga In</MudNavLink>
+						<MudNavLink Href="/Account/Register">Registrera</MudNavLink>
+					}
+					else
+					{
+						<form action="Account/Logout" method="post" class="logout-form ms-5">
+							<AntiforgeryToken />
+							<input type="hidden" name="ReturnUrl" value="" />
+							<button type="submit" class="mud-nav-link" >
+								Logga ut
+							</button>
+						</form>
+						<MudNavLink Href="/Admin">Adminprofil</MudNavLink>
+					}
+				</div>
+			</div>
+
+			<div class="nav-dropdown mx-2">
+				<MudIconButton Icon="@Icons.Material.Rounded.Menu"
+							   Color="Color.Inherit"
+							   Size="Size.Large"
+							   Style="color: black;" />
+				<div class="dropdown-menu">
+					<MudNavLink Href="/">Hem</MudNavLink>
+					<MudNavLink Href="/contactus">Kontakta Oss</MudNavLink>
+					<MudNavLink Href="/game">Spel</MudNavLink>
+					<MudNavLink Href="/physicalProduct">Gamingtillbehör</MudNavLink>
+				</div>
+			</div>
+				<MudIconButton Icon="@Icons.Material.Rounded.ShoppingCart"
+							   Href="/shoppingcart"
+							   Color="Color.Inherit"
+							   Size="Size.Large"
+							   Style="color: black;" />
+		</MudItem>
+	</MudGrid>
+</MudAppBar>
+
+@code {
+	public bool loggedIn;
+	protected override async Task OnInitializedAsync ()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;	
+		if (user.Identity != null && user.Identity.IsAuthenticated)
+		{
+			loggedIn = true;
+		}
+	}
+}
+
+
+<div style="height: 100px;"></div>
+
+<style>
+	.nav-dropdown {
+		position: relative;
+		display: inline-block;
+	}
+
+	.dropdown-menu {
+		display: none;
+		position: absolute;
+		right: 0;
+		top: 100%;
+		background-color: white;
+		min-width: 160px;
+		box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+		z-index: 1000;
+		border-radius: 8px;
+		margin-top: 5px;
+	}
+
+	.nav-dropdown:hover .dropdown-menu {
+		display: block;
+	}
+
+	.dropdown-menu .mud-nav-link {
+		padding: 12px 16px;
+		color: black;
+		text-decoration: none;
+		display: block;
+	}
+
+	.custom-search-field {
+		height: 48px;
+		padding-right: 40px;
+		border-radius: 25px;
+		outline: none !important;
+		box-shadow: none !important;
+		border: 1px solid #ced4da;
+	}
+
+		.custom-search-field:focus {
+			border-color: #ccc;
+		}
+
+	.search-icon-right {
+		position: absolute;
+		right: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: #888;
+		font-size: 20px;
+		pointer-events: none;
+	}
+
+	@@media (max-width: 600px) {
+		.mud-grid {
+			flex-direction: column;
+		}
+
+		.mud-item {
+			justify-content: center !important;
+			margin-bottom: 12px;
+		}
+	}
+
+	.dropdown-menu .logout-form {
+    margin: 0;
+}
+
+.dropdown-menu button.mud-nav-link {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    letter-spacing: inherit;
+    color: black;
+}
+
+.dropdown-menu button.mud-nav-link:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+</style>
+
+<script>
+	let games = [];
+
+	document.addEventListener('DOMContentLoaded', async () => {
+		try {
+			const response = await fetch('/api/games');
+			if (response.ok) {
+				games = await response.json();
+			} else {
+				console.error('Failed to fetch games:', response.statusText);
+			}
+		} catch (error) {
+			console.error('Error fetching games:', error);
+		}
+
+		document.addEventListener('click', function (event) {
+			const searchInput = document.getElementById("searchInput");
+			const dropdown = document.getElementById("searchDropdown");
+
+			if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+				dropdown.style.display = "none";
+			}
+		});
+	});
+
+	function filterGames() {
+		const input = document.getElementById("searchInput");
+		const dropdown = document.getElementById("searchDropdown");
+		const query = input.value.toLowerCase().trim();
+
+		dropdown.innerHTML = "";
+		if (!query) {
+			dropdown.style.display = "none";
+			return;
+		}
+
+		const matches = games.filter(g =>
+			g.name && g.name.toLowerCase().startsWith(query)
+		);
+
+		if (matches.length === 0) {
+			const item = document.createElement("li");
+			item.className = "list-group-item";
+			item.textContent = "Inga träffar";
+			dropdown.appendChild(item);
+		} else {
+			for (const game of matches) {
+				const item = document.createElement("li");
+				item.className = "list-group-item";
+				item.innerHTML = `
+					<a href="/game/${game.id}" style="text-decoration: none; color: black; display: flex; justify-content: space-between;">
+						<span>${game.name}</span>
+						<span>${game.price} kr</span>
+					</a>`;
+				dropdown.appendChild(item);
+			}
+		}
+
+		dropdown.style.display = "block";
+	}
+</script>
+

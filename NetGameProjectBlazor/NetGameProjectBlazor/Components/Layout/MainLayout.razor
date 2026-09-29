@@ -1,0 +1,59 @@
+﻿@using MudBlazor
+@inherits LayoutComponentBase
+@* Required for MudBlazor *@
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<div class="page">
+    @*     <div class="sidebar">
+    <NavMenu />
+    </div> *@
+    <main>
+        @*         <div class="top-row px-4">
+        <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        </div> *@
+        <NavMenu />
+        <article class="main-content px-4">@Body</article>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-contact">
+                    <h6>GårdaNetGame</h6>
+                    <div>
+                        <p class="mb-5">
+                            Ebbe Lieberathsgatan 18C <br />
+                            412 83 Göteborg, Sverige
+                        </p>
+                        <p>
+                            <MudIcon Icon="@Icons.Material.Filled.PhoneAndroid" /> 031-790 42 55 <br />
+                            <MudIcon Icon="@Icons.Material.Filled.Mail" /> kontakt@gardanetgame.com
+                        </p>
+                    </div>
+                </div>
+                <div class="footer-social-media">
+                    <h6>Följ oss</h6>
+                    <p>Följ oss på sociala medier för att hålla dig uppdaterad med våra senaste nyheter och evenemang!</p>
+                    <p>
+                        <MudIcon Icon="@Icons.Custom.Brands.Instagram" />
+                        <MudIcon Icon="@Icons.Custom.Brands.YouTube" />
+                    </p>
+                </div>
+                <div class="footer-links">
+                    <h6>Länkar</h6>
+                    <p><a href="/contactus">Kontakta Oss</a></p>
+                    <p><a href="/game">Spel</a></p>
+                    <p><a href="/physicalProduct">Gamingtillbehör</a></p>
+                    <p><a href="#">Användarvillkor</a></p>
+                    <p><a href="#">Sekretesspolicy</a></p>
+                </div>
+            </div>
+            <p class="footer-copyright">© 2025 GårdaNetGame. All rights reserved.</p>
+        </footer>
+    </main>
+</div>
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div> 

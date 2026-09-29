@@ -1,0 +1,23 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - template: templates/install-dependencies.yaml
+
+  # Run all tests
+  - script: |
+      robot --variable BROWSER:headlesschrome --pythonpath . --include ready --xunit testing_files/results/logs/output_ready_test_xunit.xml --output testing_files/results/logs/output_ready_test.xml --log testing_files/results/logs/log_ready_test.html --report testing_files/results/logs/report_ready_test.html testing_files/tests/
+    continueOnError: true
+    displayName: 'Run Tests tagged with ready'
+
+  # Publish the Robot Framework reports as pipeline artifacts.
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(System.DefaultWorkingDirectory)/testing_files/results/logs/'
+      artifactName: 'robot-reports-main'
+    displayName: 'Publish Robot Framework Reports'
+
+

@@ -1,0 +1,400 @@
+﻿@page "/shoppingcart"
+@inject HttpClient _httpClient
+@inject NavigationManager _navigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserState userState
+@inject GuestCartService GuestCart
+@rendermode InteractiveWebAssembly
+
+@using System.Net;
+@using System.Diagnostics;
+@using MudBlazor;
+@using MudBlazor.Services;
+@using NetGameProjectBlazor.Shared.DTOs;
+
+<PageTitle>Varukorg</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+    <MudText Class="mt-5" Typo="Typo.body1">Väntar på att ladda ...</MudText>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_currentCartMessage))
+    {
+        <MudAlert Severity="@_currentSeverity">@_currentCartMessage</MudAlert>
+    }
+
+    @if (_shoppingCart?.ShoppingCartItems != null && _shoppingCart.ShoppingCartItems.Any())
+    {        
+        <div class="container py-4">
+            <h2 class="text-center mb-5">Din varukorg</h2>
+
+            @if (!string.IsNullOrEmpty(_currentQuantityMessage))
+            {
+                <MudAlert Severity="@_currentSeverity">@_currentQuantityMessage</MudAlert>
+            }
+
+            <div class="products-container mt-2" style="max-height: 300px; overflow-y: auto;">
+                @foreach (var item in _shoppingCart.ShoppingCartItems)
+                {
+                    <div class="card mb-3 p-3">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <img src="@item.ProductImageUrl" alt="@item.ProductName" style="max-width: 150px; height: auto;" class="img-fluid rounded" />
+                            </div>
+
+                            <div class="col ms-3">
+                                <div class="card-body p-0">
+                                    <h5 class="card-title mb-1">@item.ProductName</h5>
+                                    <p class="card-text">@item.PriceAtPurchase kr</p>
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-outline-secondary" @onclick="() => DecreaseQuantityAsync(item)"
+                                        style=" color: #937878CC; border: none; width: auto; height: 30px;"
+                                        onmouseover="this.style.backgroundColor='#EEEEEE'"
+                                        onmouseout="this.style.backgroundColor='transparent'">
+                                            <strong>&minus;</strong>
+                                        </button>
+
+                                        <input class="form-control d-inline-block" type="text" value="@item.Quantity" readonly
+                                        style="background-color:#ECE7E7; opacity:80%; width: 60px; height: 30px; text-align: center;">
+
+                                        <button class="btn btn-outline-secondary" @onclick="() => IncreaseQuantityAsync(item)"
+                                        style="color: #937878CC; border: none; width: auto; height: 30px;"
+                                        onmouseover="this.style.backgroundColor='#EEEEEE'"
+                                        onmouseout="this.style.backgroundColor='transparent'">
+                                            <strong>+</strong>
+                                        </button>
+
+                                        <MudButton Color="Color.Default" Size="Size.Medium" StartIcon="@Icons.Material.Outlined.Delete" @onclick="() => DeleteItemAsync(item.Id)"></MudButton>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-auto text-end">
+                                <p class="card-text"><strong>Delsumma: </strong> @item.Subtotal kr</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <h5 class="text-end mt-5 mb-5"><strong>Totalpris: </strong> @_shoppingCart.TotalPrice kr</h5>
+
+            <MudDivider Class="mt-5 mb-5" />
+
+            <div class="text-center mt-5 mb-5">
+                <MudButton Href="@("/checkout")"
+                Rel="nofollow"
+                Variant="Variant.Filled"
+                EndIcon="@Icons.Material.Filled.ShoppingCart"
+                Class="pa-4 cart-button"
+                Style="background-color: #937878CC; color: white; width: 50%">
+                    Kassa
+                </MudButton>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container py-4">
+            <h2 class="text-center mb-5">Din varukorg</h2>
+            <MudDivider Class="mt-5 mb-5" />
+            <h6 class="text-center mt-5 mb-5">Din varukorg är tom.</h6>
+        </div>
+    }    
+}
+
+
+@code {
+    private bool _isLoading = true;
+    private bool _isCustomerLoggedIn = false;
+
+    private string? _customerId;
+    public int _cartId;
+
+    private string? _currentCartMessage;
+    private string? _currentQuantityMessage;
+    private Severity _currentSeverity;
+
+    private ShoppingCartDto _shoppingCart = new ShoppingCartDto();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        await userState.GetUserInfo();
+        if (userState.IsSignedIn)
+        {
+            _customerId = userState.UserId;
+        }
+        _cartId = userState.CartId;
+        // Flöde: Är någon kund inloggad?
+        // JA: hämta kundId --> tillgång till kundens shoppingcart info
+        // NEJ: sätt kundId till 0 för att indikera en gäst        
+
+
+        _isCustomerLoggedIn = await IsCustomerLoggedInAsync();
+        _customerId = await GetCustomerIdAsync();
+        _cartId = await GetOrCreateCartAsync();
+
+        await LoadShoppingCartAsync(_cartId);
+    }  
+
+    private async Task<bool> IsCustomerLoggedInAsync()
+    {
+        if (_customerId is not null) 
+        {
+            return true; 
+        } else return false;
+    }
+
+    private async Task<string> GetCustomerIdAsync() 
+    {
+        if (_isCustomerLoggedIn)
+        {
+            // När autentisiering är färdig, returnera kund info:
+            // Test: returnera inloggad användare med Id = 1
+            return _customerId;
+        }
+        else
+        {
+            // Test: gäst med Id = 0
+            return "0";
+        }
+    }
+
+    private async Task<int> GetOrCreateCartAsync()
+    {
+        // Kod för att hämta och returnera en kunds (senaste) kundvagn. 
+        if (_isCustomerLoggedIn && _customerId == userState.UserId)
+        {
+            return _cartId;
+        }
+        else return 0;
+    }
+
+    private async Task LoadShoppingCartAsync(int cartId)
+    {
+        try
+        {
+            if (userState.IsSignedIn)
+            {
+                var response = await _httpClient.GetAsync($"api/cart/{_cartId}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _shoppingCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+                    _currentCartMessage = null;
+                }
+                else if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    await ShowCartMessageAsync("Vi kunde inte hitta din kundvagn. Försök igen eller kontakta oss om problemet kvarstår.", Severity.Error);
+                    Console.WriteLine($"[ERROR] Cart not found. ID: {cartId}.");
+
+                    _shoppingCart = null;
+                }
+                else
+                {
+                    var errorDetails = await response.Content.ReadAsStringAsync();                               
+
+                    await ShowCartMessageAsync("Det gick inte att ladda din kundvagn. Försök igen senare.", Severity.Error);
+                    Console.WriteLine($"[ERROR] Failed to load cart {cartId}. Status: {response.StatusCode}, Details: {errorDetails}.");
+
+                    _shoppingCart = null;
+                }
+            } else
+            {
+                _shoppingCart = await GuestCart.GetAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowCartMessageAsync("Ett oväntat fel inträffade vid laddning av kundvagnen.", Severity.Error);
+            Console.WriteLine($"[ERROR] Exception in LoadShoppingCartAsync: {ex}");
+
+            _shoppingCart = null; 
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task<int> CreateNewShoppingCartAsync()
+    {
+        var newCart = new ShoppingCartCreateDto
+        {
+            CustomerId = _customerId,
+            CreatedAt = DateTime.Now
+        };
+
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/cart", newCart);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var createdCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+
+                await ShowCartMessageAsync(null, Severity.Info);
+                _shoppingCart = createdCart;
+
+                return createdCart?.Id ?? 0;
+            }
+            else
+            {
+                var errorDetails = await response.Content.ReadAsStringAsync();
+                await ShowCartMessageAsync($"Det gick inte att skapa din kundvagn. Försök igen om en stund. Om problemet kvarstår, vänligen kontakta vår kundtjänst.", Severity.Error);
+                Debug.WriteLine($"[DEBUG] Failed to create cart. Status code: {response.StatusCode}. {errorDetails}.");
+
+                return 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowCartMessageAsync($"Vi hade problem med att skapa din kundvagn. Försök igen om en stund, eller kontakta oss om problemet fortsätter.", Severity.Error);
+            Debug.WriteLine($"[DEBUG] Exception in CreateNewShoppingCartAsync: {ex}");
+            return 0;
+        }
+    }
+
+    private async Task DecreaseQuantityAsync(ShoppingCartItemDto item)
+    {   
+        if (item.Quantity == 1)
+        {
+            await DeleteItemAsync(item.Id);
+        }
+        else if (item.Quantity > 1)
+        {
+            item.Quantity--;
+            await UpdateQuantityAsync(item);  
+        }
+    }
+
+    private async Task IncreaseQuantityAsync(ShoppingCartItemDto item)
+    {
+        item.Quantity++;
+        await UpdateQuantityAsync(item); 
+    }   
+
+    private async Task UpdateQuantityAsync(ShoppingCartItemDto item)
+    {
+        var cartItemToUpdate = new ShoppingCartItemUpdateDto
+        {
+            Id = item.Id,
+            Quantity = item.Quantity
+        };
+
+        try
+        {
+            if (userState.IsSignedIn)
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/cart/item/{_shoppingCart.Id}", cartItemToUpdate);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var updatedCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+
+                    if (updatedCart != null)
+                    {
+                        _shoppingCart = updatedCart;
+                        await ShowQuantityMessageAsync("Kvantiteten har uppdaterats.", Severity.Success);
+                    }
+                    else
+                    {
+                        await ShowQuantityMessageAsync("Produktens kvantitet uppdaterades, men kundvagnen kunde inte uppdateras korrekt.", Severity.Warning);
+                    }
+                }
+                else
+                {
+                    var errorDetails = await response.Content.ReadAsStringAsync();
+                    await ShowQuantityMessageAsync("Det gick inte att uppdatera produktens kvantitet.", Severity.Error);
+                    Console.WriteLine($"[ERROR] Failed to update quantity. Status code: {response.StatusCode}. {errorDetails}.");
+                }
+            }  else
+            {
+                await GuestCart.SetQuantityAsync(item.ProductId, item.Quantity);
+                await ShowQuantityMessageAsync("Kvantiteten har uppdaterats.", Severity.Success);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            await ShowQuantityMessageAsync("Något gick fel när vi försökte uppdatera kvantiteten. Vänligen försök igen.", Severity.Error);
+            Console.WriteLine($"[ERROR] Exception in UpdateQuantityAsync: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteItemAsync(int itemId)
+    {
+        try
+        {
+            if (userState.IsSignedIn)
+            {
+                var response = await _httpClient.DeleteAsync($"api/cart/item/{_shoppingCart.Id}/{itemId}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var updatedCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+
+                    if (updatedCart != null)
+                    {
+                        _shoppingCart = updatedCart;
+                        await ShowQuantityMessageAsync("Produkten togs bort från kundvagnen.", Severity.Success);
+                    }
+                    else
+                    {
+                        await ShowQuantityMessageAsync("Produkten togs bort, men kundvagnen kunde inte uppdateras korrekt.", Severity.Warning);
+                    }
+                }
+                else
+                {
+                    var errorDetails = await response.Content.ReadAsStringAsync();
+                    await ShowQuantityMessageAsync($"Vi kunde inte ta bort produkten just nu. Försök igen om en stund.", Severity.Error);
+                }
+            } else
+            {
+                await GuestCart.RemoveAsync(_shoppingCart.ShoppingCartItems.FirstOrDefault(x => x.Id == itemId)!.ProductId);
+                _shoppingCart = await GuestCart.GetAsync();
+                await ShowQuantityMessageAsync("Produkten togs bort från kundvagnen.", Severity.Success);
+
+            }
+        }
+        catch (Exception ex)
+        {
+            await ShowQuantityMessageAsync($"Ett oväntat fel uppstod när vi försökte ta bort produkten från kundvagnen.", Severity.Error);
+            Console.WriteLine($"[ERROR] Exception in DeleteItemAsync: {ex.Message}");
+        }
+    }
+
+    private async Task ShowCartMessageAsync(string message, Severity severity)
+    {
+        _currentCartMessage = message;
+        _currentSeverity = severity;
+        StateHasChanged(); 
+
+        if (!string.IsNullOrEmpty(message))
+        {
+            await Task.Delay(3000); 
+            _currentCartMessage = null;
+            StateHasChanged(); 
+        }
+    }
+
+    private async Task ShowQuantityMessageAsync(string message, Severity severity)
+    {
+        _currentQuantityMessage = message;
+        _currentSeverity = severity;
+        StateHasChanged(); 
+
+        if (!string.IsNullOrEmpty(message))
+        {
+            await Task.Delay(3000);
+            _currentQuantityMessage = null;
+            StateHasChanged();
+        }
+
+    }
+}

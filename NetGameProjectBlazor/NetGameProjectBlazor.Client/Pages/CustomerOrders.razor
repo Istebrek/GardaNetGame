@@ -1,0 +1,154 @@
+﻿@page "/kund/order"
+
+@inject HttpClient httpClient
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager Navigation
+@rendermode InteractiveWebAssembly
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@using System.Net;
+@using MudBlazor;
+@using MudBlazor.Services;
+@using NetGameProjectBlazor.Shared.DTOs;
+
+@* @attribute [Authorize(Roles = "Admin")] *@
+
+<PageTitle>Kundordrar</PageTitle>
+
+@* <AuthorizeView> *@
+    @if (AllGames == null) {
+	    <MudProgressCircular Indeterminate="true"/>
+    } else {
+        <h1>Kundens Ordrar</h1>
+        <MudExpansionPanels>
+                <MudStack>
+            <MudExpansionPanel Class="rounded-lg mb-5" Expanded=false>
+
+                <TitleContent>
+                    <MudIcon Icon="@Icons.Material.Outlined.Category" />  ORD-2025-001
+                </TitleContent>
+                
+                <ChildContent>
+                    <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                    <MudText>
+                        @if (game1 != null)
+                        {
+                            <img src="@game1.ProductImageUrl" alt="@game1.Name" style="max-width: 150px; height: auto;" class="img-fluid rounded" />             
+                            <br/>
+                            <MudText>@game1.Name @game1.Price Kr</MudText>
+                        }
+
+                    </MudText>
+                    <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                    <MudText>
+                        @if (game3 != null)
+                        {
+                            <img src="@game3.ProductImageUrl" alt="@game3.Name" style="max-width: 150px; height: auto;" class="img-fluid rounded" />             
+                            <br/>
+                            <MudText>@game3.Name @game3.Price Kr</MudText>
+                        }
+
+                    </MudText>
+                </ChildContent>
+
+            </MudExpansionPanel>
+                </MudStack>
+                <MudStack>
+            <MudExpansionPanel Class="rounded-lg mb-5" Expanded=false>
+
+                <TitleContent>
+                    <MudIcon Icon="@Icons.Material.Outlined.Category" />  ORD-2025-002
+                </TitleContent>
+                
+                <ChildContent>
+                    <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                    <MudText>
+                        @if (game2 != null)
+                        {
+                            <img src="@game2.ProductImageUrl" alt="@game2.Name" style="max-width: 150px; height: auto;" class="img-fluid rounded" />             
+                            <br/>
+                            <MudText>@game2.Name @game2.Price Kr</MudText>
+                        }
+
+                    </MudText>
+                    <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                    <MudText>
+                        @if (game4 != null)
+                        {
+                            <img src="@game4.ProductImageUrl" alt="@game4.Name" style="max-width: 150px; height: auto;" class="img-fluid rounded" />             
+                            <br/>
+                            <MudText>@game4.Name @game4.Price Kr</MudText>
+                        }
+
+                    </MudText>
+                    <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                    <MudText>
+                        @if (game9 != null)
+                        {
+                            <img src="@game9.ProductImageUrl" alt="@game9.Name" style="max-width: 150px; height: auto;" class="img-fluid rounded" />             
+                            <br/>
+                            <MudText>@game9.Name @game9.Price Kr</MudText>
+                        }
+
+                    </MudText>
+                    <MudDivider Class="mt-5 mb-5" Style="height: 2px; font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;" />
+                    <MudText>
+                        @if (game7 != null)
+                        {
+                            <img src="@game7.ProductImageUrl" alt="@game7.Name" style="max-width: 150px; height: auto;" class="img-fluid rounded" />             
+                            <br/>
+                            <MudText>@game7.Name @game7.Price Kr</MudText>
+                        }
+
+                    </MudText>
+                </ChildContent>
+
+            </MudExpansionPanel>
+                </MudStack>
+        </MudExpansionPanels>
+    
+    }
+@* </AuthorizeView> *@
+
+
+
+@code {
+    // [Parameter] public string userId { get; set; }
+    private List<GamesOverviewDto> AllGames;
+    private GamesOverviewDto game1;
+    private GamesOverviewDto game2;
+    private GamesOverviewDto game3;
+    private GamesOverviewDto game4;
+    private GamesOverviewDto game5;
+    private GamesOverviewDto game6;
+    private GamesOverviewDto game7;
+    private GamesOverviewDto game8;
+    private GamesOverviewDto game9;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {            
+            var response = await httpClient.GetAsync("api/games");
+            Console.WriteLine(" Gick att hitta alla spel");
+            if (response.IsSuccessStatusCode)
+            {
+                AllGames = await response.Content.ReadFromJsonAsync<List<GamesOverviewDto>>();
+                game1 = AllGames.FirstOrDefault(g => g.Id == 1);
+                game2 = AllGames.FirstOrDefault(g => g.Id == 2);
+                game3 = AllGames.FirstOrDefault(g => g.Id == 3);
+                game4 = AllGames.FirstOrDefault(g => g.Id == 4);
+                game5 = AllGames.FirstOrDefault(g => g.Id == 5);
+                game6 = AllGames.FirstOrDefault(g => g.Id == 6);
+                game7 = AllGames.FirstOrDefault(g => g.Id == 7);
+                game8 = AllGames.FirstOrDefault(g => g.Id == 8);
+                game9 = AllGames.FirstOrDefault(g => g.Id == 9);
+                Console.WriteLine("Gick att hitta spel");
+
+            }
+        } catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message + " Gick inte att hitta spel");
+        }
+    }
+}

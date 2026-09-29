@@ -1,0 +1,294 @@
+﻿@page "/physicalProduct"
+@using System.Net.Http.Json
+@using System.Threading
+@using MudBlazor
+@using NetGameProjectBlazor.Shared.DTOs
+@inject HttpClient httpClient
+@inject NavigationManager NavigationManager
+@inject UserState userState
+@inject GuestCartService GuestCart
+@rendermode InteractiveWebAssembly
+
+<MudText Typo="Typo.h1" Align="Align.Center" Style="margin: m-2">Tillbehör</MudText>
+
+@if (AllProducts == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+
+    <MudText>@_message</MudText>
+
+    <MudPaper Class="pa-4">
+        <MudStack Spacing="2">
+            <MudButton OnClick="OnExpandCollapseClick" EndIcon="@Icons.Material.Rounded.ModeEditOutline">Filter</MudButton>
+            <MudDivider />
+            <MudCollapse Expanded="_expanded">
+                <MudStack Spacing="2">
+                    <MudSlider @bind-Value="@maxValue" Min="minValue" Max="10000" Style="width: 400px;">
+                        Max Pris
+                    </MudSlider>
+
+                    <MudSlider @bind-Value="@minValue" Min="0" Max="maxValue" Style="width: 400px;">
+                        Min Pris
+                    </MudSlider>
+
+                    <MudStack Row="true" Spacing="1">
+                        <MudText>Omfång: @minValue - @maxValue</MudText>
+                        <MudButton 
+                        OnClick="SortPriceRange" 
+                        EndIcon="@Icons.Material.Rounded.ModeEditOutline"
+                        class="btn-primary"
+                        >Filtrera</MudButton>
+                    </MudStack>
+                </MudStack>
+
+                <MudPaper Class="pa-2" Style="max-width: 400px;">
+                    <MudTextField @bind-Value="@searchText" Placeholder="Sök..."
+                    Adornment="Adornment.End"
+                    AdornmentIcon="@Icons.Material.Filled.Search"
+                    OnAdornmentClick="PerformNameSearch"
+                    Immediate="true"/>
+                </MudPaper>
+
+                <MudButton OnClick="ClearFilter" Class="btn-primary">Rensa Filter</MudButton>
+                <MudButton EndIcon="@SortPriceIcon" onclick="SortByPrice">Pris </MudButton>
+                <MudButton EndIcon="@SortNameIcon" onclick="SortByName">Namn </MudButton>
+            </MudCollapse>
+        </MudStack>
+
+    </MudPaper>
+    @if (!string.IsNullOrEmpty(_productAdded))
+    {
+        <MudAlert Severity="Severity.Success">@_productAdded</MudAlert>
+    }
+    <MudGrid Justify="Justify.Center" Spacing="2" Style="max-width: 100%; overflow-x: hidden; margin-top: 20px">
+        @foreach (var product in VisibleProducts)
+        {
+            <MudItem xs="12" sm="6" md="4" lg="4" Style="max-width: 100%; padding: 10px;">
+                <MudCard Class="no-border" 
+                Style="display: flex; flex-direction: column; height: 100%; width: 100%; max-width: 100%; margin: 0 auto;">
+                    <MudCardMedia Image="@product.ProductImageUrl"
+                    Style="width: 100%; height: 250px; object-fit: cover;" />
+                    <MudCardContent Style="flex-grow: 1; display: flex; flex-direction: column;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="margin: 10px; overflow: hidden;">
+                            <MudText Typo="Typo.h5"
+                            Style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; width: 100%; max-width: 100%;">
+                                @product.Name
+                            </MudText>
+                            <MudIcon title="@($"Lagersaldo: {product.StockQuantity}")" Icon="@Icons.Material.Filled.FiberManualRecord"
+                            Style=@($"font-size: 14px; color: {((product.IsActive ?? false) ? "#66BB6A" : "#616161")};") />
+                        </MudStack>
+                        <MudText Typo="Typo.body2" Style="margin: 10px;">@product.Price kr</MudText>
+                        <MudButton StartIcon="@Icons.Material.Outlined.ShoppingCart" OnClick="@(() => AddProductToCart(product.Id, 1, product.Price, product.Name, product.ProductImageUrl))"></MudButton>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Filled"
+                        Style="width: 100%; border-radius: 0; background-color: #937878CC; color: white;"
+                        Href=@($"/product/{product.Id}")>
+                            Läs mer
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<PhysicalProductDto> AllProducts = new List<PhysicalProductDto>();
+    private List<PhysicalProductDto> VisibleProducts = new List<PhysicalProductDto>();
+    private string _message = string.Empty;
+    private string _productAdded = string.Empty;
+    private bool isPriceAsc = true;
+    private bool isNameAsc = true;
+
+    private string SortPriceIcon => isPriceAsc
+    ? Icons.Material.Filled.ArrowUpward
+    : Icons.Material.Filled.ArrowDownward;
+
+    private string SortNameIcon => isNameAsc
+    ? Icons.Material.Filled.ArrowUpward
+    : Icons.Material.Filled.ArrowDownward;
+
+    bool _expanded = false;
+    int maxValue = 10000;
+    int minValue = 0;
+
+    public int cartId;
+
+
+
+    private string searchText = string.Empty;
+
+    private void ClearFilter()
+    {
+        VisibleProducts = AllProducts.ToList();
+    }
+
+    private void PerformNameSearch()
+    {
+        VisibleProducts.Clear();
+        _message = string.Empty;
+        foreach (var product in AllProducts)
+        {
+            if (product.Name.ToLower().Contains(searchText.ToLower())) VisibleProducts.Add(product);
+        }
+        if (VisibleProducts.Count() == 0)
+        {
+            _message = $"Det finns ingen produkt vid namnet: {searchText}";
+            VisibleProducts = AllProducts.ToList();
+        }
+    }
+
+    private void OnExpandCollapseClick()
+    {
+        _expanded = !_expanded;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await userState.GetUserInfo();
+            cartId = userState.CartId;
+
+            var response = await httpClient.GetAsync("api/physicalProducts");
+            if (response.IsSuccessStatusCode)
+            {
+                AllProducts = await response.Content.ReadFromJsonAsync<List<PhysicalProductDto>>();
+                if (AllProducts != null) VisibleProducts = AllProducts.ToList();
+                else _message = "Inga produkter tillgängliga";
+            }
+            else
+            {
+                _message = response.ReasonPhrase;
+                TempData();
+            }
+        }
+        catch
+        {
+            _message = "Fel vid anslutning till databas";
+            TempData();
+        }
+    }
+
+    private void SortPriceRange()
+    {
+        _message = string.Empty;
+        if (maxValue >= minValue)
+        {
+            VisibleProducts.Clear();
+            foreach (var product in AllProducts)
+            {            
+                if (product.Price <= maxValue && product.Price >= minValue)
+                {
+                    VisibleProducts.Add(product);
+                }
+            }
+            if (VisibleProducts.Count() == 0)
+            {
+                VisibleProducts = AllProducts.ToList();
+                _message = "Det finns inga produkter i det prisomfånget";
+            }
+        }
+        else _message = "Det finns inga prodiúkter i det prisomfånget";
+        StateHasChanged();
+    }
+
+    private async Task AddProductToCart(int productId, int quantity, decimal priceAtPurchase, string productName, string? imageUrl)
+    {
+        try
+        {
+            if (userState.IsSignedIn)
+            {
+                var response = await httpClient.PostAsJsonAsync($"api/cart/item/{cartId}", new ShoppingCartItemCreateDto
+                    {
+                        ProductId = productId,
+                        Quantity = quantity,
+                        PriceAtPurchase = priceAtPurchase
+                    });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _productAdded = $"{productName} har lagts till i varukorgen.";
+                }
+            } else
+			{
+				await GuestCart.AddAsync(new ShoppingCartItemDto
+				{
+					ProductId = productId,
+					Quantity = 1,
+					PriceAtPurchase = priceAtPurchase,
+					ProductImageUrl = imageUrl,
+					ProductName = productName
+				});
+				_productAdded = $"{productName} har lagts till i varukorgen.";
+			}
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    private void SortByName()
+    {
+        Console.WriteLine("SortByName Runs");
+        if (isNameAsc)
+        {
+            SortByNameAsc();
+        }
+        else
+        {
+            SortByNameDesc();
+        }
+        isNameAsc = !isNameAsc;
+        StateHasChanged();
+    }
+
+    private void SortByNameAsc() => VisibleProducts = VisibleProducts.OrderBy(p => p.Name).ToList();
+    private void SortByNameDesc() => VisibleProducts = VisibleProducts.OrderByDescending(p => p.Name).ToList();
+
+
+    private void SortByPrice()
+    {
+        Console.WriteLine("SortByPrice Runs");
+        if (isPriceAsc)
+        {
+            SortByPriceDesc();
+        }
+        else
+        {
+            SortByPriceAsc();
+        }
+        isPriceAsc = !isPriceAsc;
+        StateHasChanged();
+    }
+
+    private void SortByPriceAsc() => VisibleProducts = VisibleProducts.OrderBy(p => p.Price).ToList();
+    private void SortByPriceDesc() => VisibleProducts = VisibleProducts.OrderByDescending(p => p.Price).ToList();
+    
+
+    private void TempData()
+    {
+        var tempPhysicalProductDtos = new PhysicalProductDto()
+            {
+                Id = 0,
+                Description = "test",
+                Name = "Test",
+                Price = 0,
+                IsActive = true,
+                ProductImageUrl = "https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg",
+                StockQuantity = 0
+            };
+        for (int i = 0; i < 6; i++)
+        {
+            VisibleProducts.Add(tempPhysicalProductDtos);
+        }
+    }
+}
+
+

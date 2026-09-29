@@ -1,0 +1,39 @@
+﻿@page "/orderconfirmation"
+@rendermode InteractiveWebAssembly
+
+@using MudBlazor;
+@using MudBlazor.Services;
+
+@* Mock-up order summary until Klarna Payment implementation is finished *@
+<div class="d-flex justify-content-center align-items-center">
+	<div class="text-center spacing-3" style="width: 650px;">
+		<MudText Class="mt-5" Typo="Typo.h6"><strong>Tack för ditt köp!</strong></MudText>
+	
+		<MudText Class="mt-3 mb-1" Color="Color.Error" >
+			[Demo: Klarna betalningsintegration under utveckling]
+		</MudText>
+
+		@* Mock-up order number *@
+		<MudText Class="mt-3 mb-5">
+			Vi har mottagit din beställning <span class="mx-1" style="font-size: 13px;"><strong> ORD-2025-001 </strong></span> och den behandlas just nu.<br />
+			Ett kvitto med detaljerad information om din beställning kommer att skickas till din e-postadress när betalningen har bekräftats.
+		</MudText>
+
+		<MudText Class="mt-5" Typo=" Typo.body2" GutterBottom="true">
+			Om du har några frågor eller funderingar, vänligen kontakta oss på
+			<MudLink style="font-size: smaller" Href="mailto:support@gardanetgame.com">
+				support@gardanetgame.com
+			</MudLink>
+		</MudText>
+
+		<MudButton Href="@("/#")"
+					Class="mt-3 pa-2 order-summary-button"
+					Style="background-color: #937878CC; color: white; font-size:small; width: 50%">
+			Tillbaka till startsidan
+		</MudButton>
+	</div>
+</div>
+
+@code {
+
+}

@@ -1,0 +1,578 @@
+﻿@page "/checkout"
+@inject HttpClient _httpClient
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserState userState
+@inject GuestCartService GuestCart
+
+@rendermode InteractiveWebAssembly
+
+@using System.Net;
+@using System.Diagnostics;
+@using MudBlazor;
+@using MudBlazor.Services;
+@using NetGameProjectBlazor.Shared.DTOs;
+
+<PageTitle>Kassa</PageTitle>
+
+<MudText Class="pa-4 mb-5 text-center" Typo="Typo.h4" GutterBottom="true">Kassa</MudText>
+
+@if (_isLoading)
+{
+	<MudProgressCircular Color="Color.Default" Indeterminate="true" />
+	<MudText Class="mt-5" Typo="Typo.body1">Väntar på att ladda ...</MudText>
+}
+else
+{	
+	<MudContainer Class="px-0 mb-5">
+		<MudGrid Spacing="10">
+			@* Customer Details, Delivery and Payments *@ 
+			<MudItem xs="12" md="7">
+
+				@* Navgation button: back to cart *@ 
+				<div class="mb-3">
+					<MudButton Href="@("/shoppingcart")"
+					Class="pa-2 order-button"
+					Style="font-size: smaller; background-color: transparent; color: inherit; text-decoration: none;">
+						<MudIcon Icon="@Icons.Material.Filled.ArrowBack" Class="me-1" />
+						Tillbaka till varukorgen
+					</MudButton>
+				</div>
+
+				<MudExpansionPanels>
+					@* Personal information *@
+					<MudExpansionPanel Class="personal-info rounded-lg mb-5" Expanded=true>
+						<TitleContent>
+							<MudIcon Icon="@Icons.Material.Filled.Person" Class="me-2" />Personuppgifter
+						</TitleContent>
+
+						<ChildContent>
+							<MudDivider Class="mt-5 mb-5" Style="height: 2px;" />
+							@if (_isLoggedIn)
+							{
+								<MudText Typo="Typo.body2" Class="mb-3">
+									Du är inloggad som <strong>@_customer.FirstName @_customer.LastName</strong> – dina uppgifter är ifyllda.
+								</MudText>
+							}
+							else
+							{
+								<MudText Typo="Typo.body2" Class="mb-3">
+									Handla som gäst – fyll i dina uppgifter nedan.
+								</MudText>
+							}
+
+							<MudForm @ref="_customerForm" @bind-IsValid="_isCustomerFormValid">
+								<MudGrid>
+									<MudItem xs="12" sm="6">
+										<MudTextField Label="Förnamn"
+													  @bind-Value="_customer.FirstName"
+													  Required="true"
+													  Class="mb-3"
+													  FullWidth="true"
+													  ReadOnly="_isLoggedIn" />
+									</MudItem>
+
+									<MudItem xs="12" sm="6">
+										<MudTextField Label="Efternamn"
+													  @bind-Value="_customer.LastName"
+													  Required="true"
+													  Class="mb-3"
+													  FullWidth="true"
+													  ReadOnly="_isLoggedIn" />
+									</MudItem>
+
+									<MudItem xs="12" sm="6">
+										<MudTextField Label="E-postadress"
+													  @bind-Value="_customer.Email"
+													  Required="true"
+													  Type="email"
+													  Class="mb-3"
+													  FullWidth="true"
+													  ReadOnly="_isLoggedIn"
+													  HelperText="Används för kvitto och orderbekräftelse." />
+									</MudItem>
+
+									<MudItem xs="12" sm="6">
+										<MudTextField Label="Telefonnummer"
+													  @bind-Value="_customer.PhoneNumber"
+													  Class="mb-3"
+													  FullWidth="true"
+													  ReadOnly="_isLoggedIn" />
+									</MudItem>
+								</MudGrid>
+							</MudForm>
+
+							<div class="d-flex justify-center">
+								<MudButton Disabled="!_isCustomerFormValid"
+										   Variant="Variant.Filled"
+										   Class="mt-5 mb-5 payment-button"
+										   Style="background-color: #937878CC; color: white; width: 65%"
+										   StartIcon="@Icons.Material.Filled.Lock"
+										   OnClick="ProceedToDelivery">
+									Fortsätt till leverans
+								</MudButton>
+							</div>
+						</ChildContent>
+					</MudExpansionPanel>
+
+					@* Delivery Methods *@
+					<MudExpansionPanel Class="delivery rounded-lg mt-5 mb-5" @bind-Expanded="_isDeliveryPanelExpanded">
+						<TitleContent>
+							<MudIcon Icon="@Icons.Material.Filled.LocalShipping" Class="me-2" />Leveransalternativ
+						</TitleContent>
+
+						@* Delivery Options *@
+						<ChildContent>
+							<MudRadioGroup @bind-Value="_selectedDelivery">
+								<MudRadio Value="@("collect")">Hämta i butik</MudRadio>
+								<MudRadio Value="@("download")">Digital nedladdning</MudRadio>
+								<MudRadio Value="@("standard")" Disabled="true">Standardleverans</MudRadio>
+								<MudRadio Value="@("express")" Disabled="true">Expressleverans</MudRadio>
+							</MudRadioGroup>
+
+							@if (_selectedDelivery == "collect")
+							{
+								<MudDivider Class="mt-5 mb-5" Style="height: 2px;" />
+
+								<MudText Class="mt-3 text-center" Typo="Typo.body2">
+									Din beställning finns att hämta på <strong>GårdaNetGame Store</strong>.<br />
+									Du får en avisering när den är redo att hämtas.
+								</MudText>
+
+								@* Button:redirect to payment section *@
+								<div class="d-flex justify-center">
+									<MudButton Variant="Variant.Filled"
+									Class="mt-5 mb-5 payment-button"
+									Style="background-color: #937878CC; color: white; width: 65%"
+									StartIcon="@Icons.Material.Filled.Lock"
+									OnClick="ProceedToPayment">
+										Fortsätt till betalning
+									</MudButton>
+								</div>
+							}
+							else if (_selectedDelivery == "download")
+							{
+								<MudDivider Class="mt-5 mb-5" Style="height: 2px;" />
+
+								<MudText Class="mt-5 mb-3 pl-2 text-center" Typo="Typo.body2" GutterBottom="true">
+									Tillgänglig för nedladdning
+								</MudText>
+
+								<MudText Class="mt-3 text-center" Typo="Typo.body2">
+									Ange din e-postadress för att ta emot nedladdningslänken efter betalning.
+								</MudText>
+
+
+								<MudForm @ref="_form" @bind-IsValid="_isFormValid">
+									<MudTextField Label="Email"
+									@bind-Value="_email"
+									Type="email"
+									Class="mt-4 mb-4"
+									Required="true"
+									HelperText="Ange en giltig e-postadress för att få nedladdningslänken." />
+
+									@* Button:redirect to payment section *@
+									<div class="d-flex justify-center">
+										<MudButton Variant="Variant.Filled"
+										Class="mt-5 mb-5 payment-button"
+										Style="background-color: #937878CC; color: white; width: 60%"
+										StartIcon="@Icons.Material.Filled.Lock"
+										Disabled="@(!_isFormValid)"
+										OnClick="ProceedToPayment">
+											Fortsätt till betalning
+										</MudButton>
+									</div>
+								</MudForm>
+							}
+						</ChildContent>
+					</MudExpansionPanel>
+
+					@* Payment Methods *@
+					<MudExpansionPanel Class="payment rounded-lg mt-5 mb-5" T="bool" @bind-Expanded="_isPaymentPanelExpanded">
+						<TitleContent>
+							<MudIcon Icon="@Icons.Material.Filled.Money" Class="me-2" />Betalningsmetod
+						</TitleContent>
+
+						@* Payment Options *@
+						<ChildContent>
+							<MudRadioGroup @bind-Value="_selectedPayment">
+								<MudRadio Value="@("klarna")">Betala med Klarna</MudRadio>
+								<MudRadio Value="@("storepayment")" Disabled="true">Betala i butik</MudRadio>
+							</MudRadioGroup>
+
+							@if (_selectedPayment == "klarna")
+							{
+								<MudDivider Class="mt-5 mb-5" Style="height: 2px;" />
+
+								<MudText Class="mt-5 mb-3 pl-2 text-center" Typo="Typo.body2" GutterBottom="true">Betalalternativ via Klarna</MudText>
+
+								<div class="d-flex justify-center">
+									<img src="Images/klarna.png" alt="klarna-mockup" style="height:auto; width: 300px;" />
+								</div>
+
+								@* Plsceholder button for payment until payment implementation is finished *@
+								<div class="d-flex justify-center">
+									<MudButton Variant="Variant.Filled"
+									Class="mt-5 mb-5 payment-button"
+									Style="background-color: #937878CC; color: white; width: 50%"
+									StartIcon="@Icons.Material.Filled.Lock">
+										Betala med Klarna
+									</MudButton>
+								</div>
+							}
+						</ChildContent>
+					</MudExpansionPanel>
+				</MudExpansionPanels>
+			</MudItem>
+
+			@* Order Summary *@
+			<MudItem xs="12" md="5">
+
+				@* Payment message *@
+				<div class="mb-3">
+					<MudPaper Class="d-flex flex-column mud-width-full pt-3 pb-2 text-center"
+					Style="background-color: rgb(212, 230, 161, 0.75);">
+						<MudText Style="font-size: smaller; color: #2E7D32">
+							<MudIcon Icon="@Icons.Material.Filled.Lock" Class="me-1" Size="Size.Small" />
+							Din betalning behandlas säkert.
+						</MudText>
+					</MudPaper>
+				</div>
+
+				<MudPaper Class="d-flex flex-column mud-width-full py-4">
+
+					<MudText Class="text-start">
+						<MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="me-2 ml-4" /> Varukorg
+					</MudText>
+					
+					<MudDivider Class="mt-5 mb-3" />
+
+					@* Shopping Cart List *@
+					@if (_shoppingCart?.ShoppingCartItems != null && _shoppingCart.ShoppingCartItems.Any())
+					{
+						@if (!string.IsNullOrEmpty(_currentOrderMessage))
+						{
+							<MudAlert Severity="@_currentSeverity">@_currentOrderMessage</MudAlert>
+						}
+						
+						<div class="shoppingcart-container pa-4">
+							<div class="products-container" style="max-height: 200px; overflow-y: auto;">								
+
+								@* Product in cart *@
+								@foreach (var item in _shoppingCart.ShoppingCartItems)
+								{
+									<div class="d-flex align-items-center gap-3 mt-3 mb-3">
+										<img src="@item.ProductImageUrl" alt="@item.ProductName"
+										style="max-width: 100px; height: auto;" class="img-fluid rounded" />
+
+										<div class="flex-grow-1">
+											<p class="mb-1" style="font-size: 12px;">@item.ProductName</p>
+											<p class="mb-1" style="font-size: 10px;">@item.PriceAtPurchase kr</p>
+										</div>
+
+										<div class="d-flex align-items-center">
+											<button class="btn btn-outline-secondary" @onclick="() => DecreaseQuantityAsync(item)"
+											style="color: #937878CC; border: none; width: auto; height: 30px;"
+											onmouseover="this.style.backgroundColor='#EEEEEE'"
+											onmouseout="this.style.backgroundColor='transparent'">
+												<strong>&minus;</strong>
+											</button>
+
+											<input class="form-control d-inline-block" type="text" value="@item.Quantity" readonly
+											style="background-color:#ECE7E7; opacity:80%; width: 40px; height: 20px; text-align: center; font-size: 8px; margin: 0 4px;">
+
+											<button class="btn btn-outline-secondary" @onclick="() => IncreaseQuantityAsync(item)"
+											style="color: #937878CC; border: none; width: auto; height: 30px;"
+											onmouseover="this.style.backgroundColor='#EEEEEE'"
+											onmouseout="this.style.backgroundColor='transparent'">
+												<strong>+</strong>
+											</button>
+										</div>
+									</div>
+
+									<MudDivider Class="mt-5 mb-5" />
+								}
+							</div>
+
+							@* Temporary placeholder Subtotal until discounts is enabled *@
+							<div class="d-flex justify-content-between mt-2">
+								<MudText Class="text-start" Style="font-size: 10px;">
+									<MudIcon Icon="@Icons.Material.Filled.Money" Class="me-2 ml-2" Size="Size.Small"/> Delsumma
+								</MudText>
+								<MudText Class="text-end" Style="font-size: 10px;">@_shoppingCart.TotalPrice kr</MudText>
+							</div>
+
+							@* Temporary placeholder Shipping until all shipping methods is enabled *@
+							<div class="d-flex justify-content-between">
+								<MudText Style="font-size: 10px;">
+									<MudIcon Icon="@Icons.Material.Filled.LocalShipping" Class="me-2 ml-2" Size="Size.Small" /> Frakt
+								</MudText>
+								<MudText Style="font-size: 10px;">0 kr</MudText>
+							</div>
+
+							<MudDivider Class="mt-5 mb-5" />
+
+							<div class="d-flex justify-content-between mb-3">
+								<MudText Style="font-size: 12px;"><strong>Totalpris: </strong></MudText>
+								<MudText Style="font-size: 12px;"> @_shoppingCart.TotalPrice kr</MudText>
+							</div>
+						</div>
+					}
+					else
+					{
+						<p class="pa-4">Din varukorg är tom.</p>
+					}
+				</MudPaper>
+
+				@* Button: redirect to order summary *@
+				<div class="text-center mt-5 mb-3">
+					<MudButton Href="@("/orderconfirmation")"
+					Class="pa-2 order-button"
+					Style="background-color: #937878CC; color: white; width: 100%">
+						Slutför köp
+					</MudButton>
+					<p Class="mt-2" Style="font-size:8px">
+						* Genom att lägga din beställning godkänner du vår <u>sekretesspolicy</u> och våra <u>användarvillkor.</u>.
+					</p>
+				</div>
+			</MudItem>
+		</MudGrid>
+	</MudContainer>
+}
+
+
+
+@code {
+	private MudForm _form;
+	private MudForm _customerForm;
+
+	private bool _isCustomerFormValid;
+	private bool _isDeliveryPanelExpanded = false;
+	private bool _isPaymentPanelExpanded = false;
+	private bool _isFormValid = false;
+	private bool _isLoading = true;
+	private bool _isLoggedIn = false;
+
+	private int _cartId;
+
+	private Severity _currentSeverity;
+
+	private string? _customerId;
+	private string? _currentOrderMessage;
+	private string? _email;
+	private string? _selectedDelivery;
+	private string? _selectedPayment;
+
+	private ShoppingCartDto _shoppingCart = new ShoppingCartDto();
+	private UserDto _customer = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		await userState.GetUserInfo();
+		if (userState.IsSignedIn)
+		{
+			_customerId = userState.UserId;
+		}
+		_cartId = userState.CartId;
+
+		_isLoggedIn = await IsCustomerLoggedInAsync();
+		_customerId = await GetCustomerIdAsync();
+		_cartId = await GetCartIdAsync();
+
+		await LoadShoppingCartAsync(_cartId);
+	}
+
+	private async Task<bool> IsCustomerLoggedInAsync()
+	{
+		if (_customerId is not null)
+			return true;
+		else return false;
+	}
+
+	private async Task<string> GetCustomerIdAsync()
+	{
+		if (_customerId is not null)
+		{
+			return _customerId;
+		}
+		else
+		{
+			// Test
+			return "0";
+		}
+	}
+
+	private async Task<int> GetCartIdAsync()
+	{
+		if (_isLoggedIn)
+		{
+			return _cartId;
+		}
+		else return 0;
+	}
+
+	private async Task LoadShoppingCartAsync(int cartId)
+	{
+		try
+		{
+			if(userState.IsSignedIn)
+			{
+				var response = await _httpClient.GetAsync($"api/cart/{cartId}");
+
+				if (response.IsSuccessStatusCode)
+				{
+					_shoppingCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+					_currentOrderMessage = null;
+				}
+				else if (response.StatusCode == HttpStatusCode.NotFound)
+				{
+					_shoppingCart = null;
+					await ShowOrderMessageAsync("Din kundvagn kunde inte hittas. Försök igen senare.", Severity.Error);
+					Console.WriteLine($"[ERROR] Cart not found. ID: {cartId}.");
+				}
+				else
+				{
+					var errorDetails = await response.Content.ReadAsStringAsync();
+					await ShowOrderMessageAsync("Det gick inte att ladda din kundvagn. Försök igen senare.", Severity.Error);
+					Console.WriteLine($"[ERROR] Failed to load cart {cartId}. Status: {response.StatusCode}, Details: {errorDetails}.");
+				}
+			} else
+			{
+				var cart = await GuestCart.GetAsync();
+				_shoppingCart = cart;
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"[ERROR] Exception in LoadShoppingCartAsync: {ex.Message}");
+			_shoppingCart = null;
+		}
+		finally
+		{
+			_isLoading = false;
+		}
+	}
+
+	private async Task DecreaseQuantityAsync(ShoppingCartItemDto item)
+	{
+		if (item.Quantity == 1)
+		{
+			await DeleteItemAsync(item.Id);
+		}
+		else if (item.Quantity > 1)
+		{
+			item.Quantity--;
+			await UpdateQuantityAsync(item);
+		}
+	}
+
+	private async Task IncreaseQuantityAsync(ShoppingCartItemDto item)
+	{
+		item.Quantity++;
+		await UpdateQuantityAsync(item);
+	}
+
+	private async Task UpdateQuantityAsync(ShoppingCartItemDto item)
+	{
+		var cartItemToUpdate = new ShoppingCartItemUpdateDto
+			{
+				Id = item.Id,
+				Quantity = item.Quantity
+			};
+
+		try
+		{
+			var response = await _httpClient.PutAsJsonAsync($"api/cart/item/{_shoppingCart.Id}", cartItemToUpdate);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var updatedCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+
+				if (updatedCart != null)
+				{
+					_shoppingCart = updatedCart;
+					await ShowOrderMessageAsync("Kvantiteten har uppdaterats.", Severity.Success);
+				}
+				else
+				{
+					await ShowOrderMessageAsync("Produktens kvantitet uppdaterades, men kundvagnen kunde inte uppdateras korrekt.", Severity.Warning);
+					Console.WriteLine($"[ERROR] Item quantity updated, but failed to update cart information.");
+				}
+			}
+			else
+			{
+				var errorDetails = await response.Content.ReadAsStringAsync();
+				await ShowOrderMessageAsync("Det gick inte att uppdatera produktens kvantitet.", Severity.Error);
+				Console.WriteLine($"[ERROR] Failed to update quantity. Status code: {response.StatusCode}. {errorDetails}.");
+			}
+		}
+		catch (Exception ex)
+		{
+			await ShowOrderMessageAsync("Något gick fel när vi försökte uppdatera kvantiteten. Vänligen försök igen.", Severity.Error);
+			Console.WriteLine($"[ERROR] Exception in UpdateQuantityAsync: {ex.Message}");
+		}
+	}
+
+	private async Task DeleteItemAsync(int itemId)
+	{
+		try
+		{
+			var response = await _httpClient.DeleteAsync($"api/cart/item/{_shoppingCart.Id}/{itemId}");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var updatedCart = await response.Content.ReadFromJsonAsync<ShoppingCartDto>();
+
+				if (updatedCart != null)
+				{
+					_shoppingCart = updatedCart;
+					await ShowOrderMessageAsync("Produkten togs bort från kundvagnen.", Severity.Success);
+				}
+				else
+				{
+					await ShowOrderMessageAsync("Produkten togs bort, men kundvagnen kunde inte uppdateras korrekt.", Severity.Warning);
+				}
+			}
+			else
+			{
+				var errorDetails = await response.Content.ReadAsStringAsync();
+				await ShowOrderMessageAsync($"Vi kunde inte ta bort produkten just nu. Försök igen om en stund.", Severity.Error);
+				Console.WriteLine($"[ERROR] Failed to remove item from cart. Status code: {response.StatusCode}. {errorDetails}.");
+			}
+		}
+		catch (Exception ex)
+		{
+			await ShowOrderMessageAsync($"Ett oväntat fel uppstod när vi försökte ta bort produkten från kundvagnen.", Severity.Error);
+			Console.WriteLine($"[ERROR] Exception in DeleteItemAsync: {ex.Message}");			
+		}
+	}
+
+	private async Task ShowOrderMessageAsync(string message, Severity severity)
+	{
+		_currentOrderMessage = message;
+		_currentSeverity = severity;
+		StateHasChanged();
+
+		if (!string.IsNullOrEmpty(message))
+		{
+			_currentOrderMessage = null;
+			StateHasChanged();			
+		}
+	}
+	
+	private void ProceedToDelivery()
+	{
+		if (_isCustomerFormValid)
+		{
+			_isDeliveryPanelExpanded = true;
+		}
+	}
+
+	private void ProceedToPayment()
+	{
+		_email = string.Empty;
+		_isFormValid = false;
+		_isPaymentPanelExpanded = true;
+	}
+
+
+}
